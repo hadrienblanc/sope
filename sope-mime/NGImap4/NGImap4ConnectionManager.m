@@ -140,6 +140,14 @@ static NSString       *AuthMechanism = nil;
 }
 
 - (NGImap4Connection *)connectionForURL:(NSURL *)_url password:(NSString *)_p {
+  return [self connectionForURL:_url
+                        password:_p
+            preLoginIDParameters:nil];
+}
+
+- (NGImap4Connection *)connectionForURL:(NSURL *)_url
+                               password:(NSString *)_p
+                   preLoginIDParameters:(NSString *)_parameters {
   /*
     Three cases:
     a) not yet connected             => create new entry and connect
@@ -150,38 +158,39 @@ static NSString       *AuthMechanism = nil;
   NGImap4Client *client;
 
   if (poolingOff) {
-    client = [self imap4ClientForURL:_url password:_p];
-    entry = [[NGImap4Connection alloc] initWithClient:client 
-				       password:_p];
+    client = [self imap4ClientForURL:_url password:_p
+                 preLoginIDParameters:_parameters];
+    entry = [[NGImap4Connection alloc] initWithClient:client
+ 				       password:_p];
     return [entry autorelease];
   }
   else {
   /* check cache */
-  
+
     if ((entry = [self entryForURL:_url]) != nil) {
       if ([entry isValidPassword:_p]) {
-	if (debugCache)
-	  [self logWithFormat:@"valid password, reusing cache entry ..."];
-	return entry;
+ 	if (debugCache)
+ 	  [self logWithFormat:@"valid password, reusing cache entry ..."];
+ 	return entry;
       }
-    
+
       /* different password, password could have changed! */
       if (debugCache)
-	[self logWithFormat:@"different password than cached entry: %@", _url];
+ 	[self logWithFormat:@"different password than cached entry: %@", _url];
       entry = nil;
     }
     else
       [self debugWithFormat:@"no connection cached yet for url: %@", _url];
-  
+
     /* try to login */
-  
+
     client = [entry isValidPassword:_p]
       ? [entry client]
-      : [self imap4ClientForURL:_url password:_p];
-    
+      : [self imap4ClientForURL:_url password:_p preLoginIDParameters:_parameters];
+
     if (client == nil)
       return nil;
-  
+
   /* sideeffect of -imap4ClientForURL:password: is to create a cache entry */
     return [self entryForURL:_url];
   }
@@ -190,31 +199,40 @@ static NSString       *AuthMechanism = nil;
 /* client object */
 
 - (NGImap4Client *)imap4ClientForURL:(NSURL *)_url password:(NSString *)_pwd {
+  return [self imap4ClientForURL:_url password:_pwd preLoginIDParameters:nil];
+}
+
+- (NGImap4Client *)imap4ClientForURL:(NSURL *)_url
+                            password:(NSString *)_pwd
+                preLoginIDParameters:(NSString *)_parameters {
   // TODO: move to some global IMAP4 connection pool manager
   NGImap4Connection *entry;
   NGImap4Client *client;
   NSDictionary  *result;
-  
+
   if (_url == nil)
     return nil;
 
   /* check connection pool */
-  
+
   if ((entry = [self entryForURL:_url]) != nil) {
     if ([entry isValidPassword:_pwd]) {
       [self debugWithFormat:@"reused IMAP4 connection for URL: %@", _url];
       return [entry client];
     }
-    
+
     /* different password, password could have changed! */
     entry = nil;
   }
-  
+
   /* setup connection and attempt login */
-  
+
   if ((client = [NGImap4Client clientWithURL:_url]) == nil)
     return nil;
-  
+
+  if (_parameters && [_parameters length])
+    [client setPreLoginIDParameters:_parameters];
+
   if (AuthMechanism)
     result = [client authenticate:[_url user] password:_pwd
                         mechanism:AuthMechanism];

@@ -250,6 +250,7 @@ static NSMutableDictionary *namespaces;
   [self->selectedFolder   release];
   [self->delimiter        release];
   [self->serverGID        release];
+  [self->preLoginIDParameters release];
 
   self->context = nil; /* not retained */
   [super dealloc];
@@ -309,6 +310,29 @@ static NSMutableDictionary *namespaces;
 
 - (NSString *)selectedFolderName {
   return self->selectedFolder;
+}
+
+- (void)setPreLoginIDParameters:(NSString *)_parameters {
+  ASSIGN(self->preLoginIDParameters, _parameters);
+}
+
+- (NSString *)preLoginIDParameters {
+  return self->preLoginIDParameters;
+}
+
+- (void) _sendPreLoginID
+{
+  NSDictionary *result;
+
+  if (self->preLoginIDParameters == nil)
+    return;
+
+  result = [self->normer normalizeCapabilityResponse:
+                            [self processCommand: @"capability"]];
+  if ([[result objectForKey: @"capability"] containsObject: @"id"])
+    [self processCommand:
+            [NSString stringWithFormat: @"ID %@",
+                      self->preLoginIDParameters]];
 }
 
 /* connection */
@@ -657,6 +681,8 @@ static NSMutableDictionary *namespaces;
 
   self->isLogin = YES;
 
+  [self _sendPreLoginID];
+
   if (self->useUTF8)
     plength = [self->password lengthOfBytesUsingEncoding: NSUTF8StringEncoding];
   else
@@ -708,6 +734,8 @@ static NSMutableDictionary *namespaces;
     return nil;
 
   self->isLogin = YES;
+
+  [self _sendPreLoginID];
 
   s = [NSString stringWithFormat:@"authenticate %@", self->authMechanism];
   map = [self processCommand: s

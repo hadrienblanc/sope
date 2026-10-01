@@ -45,7 +45,18 @@
 
 - (NGImap4Connection *)connectionForURL:(NSURL *)_url password:(NSString *)_p;
 
+/* RFC 2971 ID parameters sent before authentication on newly created
+   connections, eg ("x-originating-ip" "192.0.2.1") */
+
+- (NGImap4Connection *)connectionForURL:(NSURL *)_url
+                               password:(NSString *)_p
+                   preLoginIDParameters:(NSString *)_parameters;
+
 - (NGImap4Client *)imap4ClientForURL:(NSURL *)_url password:(NSString *)_pwd;
+
+- (NGImap4Client *)imap4ClientForURL:(NSURL *)_url
+                            password:(NSString *)_pwd
+                preLoginIDParameters:(NSString *)_parameters;
 
 - (void)flushCachesForURL:(NSURL *)_url;
 
