@@ -86,6 +86,7 @@ typedef enum {
 
   NGImap4Context *context; /* not retained, used to store exceptions */
   EOGlobalID *serverGID;
+  NSString *preLoginIDParameters;
 }
 
 + (id)clientWithURL:(NSURL *)_url;
@@ -108,6 +109,12 @@ typedef enum {
 - (EOGlobalID *)serverGlobalID;
 
 - (NSString *)selectedFolderName;
+
+/* RFC 2971 ID parameters sent before authentication, eg
+   ("x-originating-ip" "192.0.2.1") */
+
+- (void)setPreLoginIDParameters:(NSString *)_parameters;
+- (NSString *)preLoginIDParameters;
 
 /* notifications */
 
